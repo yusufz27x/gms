@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
@@ -15,52 +9,54 @@ datasource db {
 }
 
 model Department {
-  id         Int       @id @default(autoincrement())
-  name       String
-  email      String    @unique
-  advisors   Advisor[]
-  students   Student[]
-  diplomas   Diploma[]   // Relation for N:1 from Diploma
-  certificates Certificate[] // Relation for N:1 from Certificate
-  graduationLists GraduationList[] // Relation for N:1 from GraduationList
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  advisors        Advisor[]
+  certificates    Certificate[]
+  diplomas        Diploma[]
+  graduationLists GraduationList[]
+  students        Student[]
 }
 
 model Advisor {
-  id           Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   name         String
-  email        String    @unique
-  type         String // Reverted back to String
+  email        String     @unique
+  type         String
   departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict) // Default behavior, explicitly stated
+  department   Department @relation(fields: [departmentId], references: [id])
   students     Student[]
 
   @@index([departmentId])
 }
 
 model Student {
-  id              Int             @id @default(autoincrement())
+  id              Int                       @id @default(autoincrement())
   name            String
-  email           String          @unique
+  email           String                    @unique
   departmentId    Int
   advisorId       Int
-  department      Department      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  advisor         Advisor         @relation(fields: [advisorId], references: [id], onDelete: Restrict)
-  transcript      Transcript?
-  diplomas        Diploma[]
   certificates    Certificate[]
+  diplomas        Diploma[]
+  advisor         Advisor                   @relation(fields: [advisorId], references: [id])
+  department      Department                @relation(fields: [departmentId], references: [id])
   graduationLists StudentOnGraduationList[]
+  transcript      Transcript?
 
   @@index([departmentId])
   @@index([advisorId])
 }
 
 model Transcript {
-  id                      Int     @id @default(autoincrement())
-  creditsCompleted        Int
+  id                         Int      @id @default(autoincrement())
+  creditsCompleted           Int
   compulsoryCoursesCompleted Int
-  ects                    Float
-  studentId               Int     @unique // Enforces one-to-one
-  student                 Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  ects                       Float
+  studentId                  Int      @unique
+  gpa                        Float    @default(0.0)
+  Course                     Course[]
+  student                    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
 }
@@ -70,24 +66,24 @@ model Diploma {
   issueDate    DateTime
   studentId    Int
   departmentId Int
-  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade) // Cascade if Student deleted
-  department   Department    @relation(fields: [departmentId], references: [id], onDelete: Restrict) // Restrict if Department deleted
   certificates Certificate[]
+  department   Department    @relation(fields: [departmentId], references: [id])
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([departmentId])
 }
 
 model Certificate {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   type         String
   issueDate    DateTime
   studentId    Int
   departmentId Int
   diplomaId    Int?
-  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  diploma      Diploma?  @relation(fields: [diplomaId], references: [id], onDelete: SetNull)
+  department   Department @relation(fields: [departmentId], references: [id])
+  diploma      Diploma?   @relation(fields: [diplomaId], references: [id])
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([departmentId])
@@ -95,21 +91,32 @@ model Certificate {
 }
 
 model GraduationList {
-  id           Int        @id @default(autoincrement())
+  id           Int                       @id @default(autoincrement())
   departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  department   Department                @relation(fields: [departmentId], references: [id])
   students     StudentOnGraduationList[]
 
   @@index([departmentId])
 }
 
-// Explicit join table for Student <-> GraduationList Many-to-Many
 model StudentOnGraduationList {
-  studentId       Int
+  studentId        Int
   graduationListId Int
-  student         Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  graduationList  GraduationList @relation(fields: [graduationListId], references: [id], onDelete: Cascade)
+  graduationList   GraduationList @relation(fields: [graduationListId], references: [id], onDelete: Cascade)
+  student          Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@id([studentId, graduationListId]) // Composite primary key
+  @@id([studentId, graduationListId])
   @@index([graduationListId])
+}
+
+model Course {
+  id           Int        @id @default(autoincrement())
+  code         String
+  name         String
+  credits      Int
+  grade        String
+  transcriptId Int
+  Transcript   Transcript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@index([transcriptId])
 }
