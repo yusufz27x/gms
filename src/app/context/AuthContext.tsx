@@ -65,7 +65,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -99,4 +100,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // Custom hook for using auth context
 export function useAuth() {
   return useContext(AuthContext);
-} 
+}
